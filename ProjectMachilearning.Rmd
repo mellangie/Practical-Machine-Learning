@@ -1,0 +1,122 @@
+---
+title: "Assignment Machine Learning"
+author: "Angela Marín"
+date: "21 de mayo de 2016"
+output: html_document
+---
+
+This project predicts the manner six people do barbell lifts. 
+
+
+##DATA CLEANING
+
+First, the data is uploaded, converting the blank fields into NAs:
+
+```{r}
+train=read.csv("pml-training.csv",na.strings=c("NA",""), header=T, sep=",")
+test=read.csv("pml-testing.csv",na.strings=c("NA",""), header=T, sep=",")
+```
+
+Now, the NAs are analized. The number of NAs in the data are shown below:
+
+```{r}
+Empty=sapply(train, function(x){sum(is.na(x))})
+table(Empty)
+```
+
+As it can be seen, there are 97 columns where all the values are cero. This 97 columns are erased:
+
+```{r}
+train1=train[,names(Empty[Empty==0])]
+```
+
+The first 7 variables are going to be removed because they are related to the participants and not needed to make the model:
+
+```{r}
+train1=train1[,-c(1,2)]
+```
+
+
+##PREDICTION
+
+###Libraries
+
+```{r}
+library(caret)
+library(rpart)
+library(rattle)
+```
+
+###Partitioning the data
+
+The idea is to partiotionate the train data to have a new training a nd testing set to be abel to study the accuracy before submitting:
+
+```{r}
+inTrain <- createDataPartition(train1$classe, p=0.6, list=FALSE)
+mytraining <- train1[inTrain, ]
+mytesting <- train1[-inTrain, ]
+```
+
+###Decision Trees
+
+First, the train function is used with the method rpart as it is shown below:
+
+```{r}
+set.seed(1986)
+model_rpart=train(classe ~ ., data = mytraining, method="rpart")
+fancyRpartPlot(model_rpart$finalModel)
+```
+
+####CrossValidation
+
+
+```{r}
+prediction_rpart <- predict(model_rpart, mytesting)
+confusionMatrix(prediction_rpart, mytesting$classe)
+```
+
+The accuaracy of this model is 0.49, and the p-value shows a significant model.
+
+The second model, it is calculated with the rpart function, with the class method: 
+
+
+```{r}
+set.seed(1987)
+model_class <- rpart(classe ~ ., data=mytraining, method="class")
+```
+
+####CrossValidation
+
+```{r}
+prediction_class <- predict(model_class, mytesting, type = "class")
+confusionMatrix(prediction_class, mytesting$classe)
+```
+
+The accuaracy of this model is 0.85, higher than the first model.
+
+###Boosted Regression
+
+The third model is calculated with the gbm method of the train function:
+
+```{r}
+#set.seed(1988)
+#fitControl <- trainControl(method = "repeatedcv",number = 5, repeats = 1)
+#model_gbm=train(classe ~ ., data = mytraining,method="gbm", trControl = fitControl,verbose = FALSE)
+```
+
+####CrossValidation
+
+```{r}
+#prediction_class <- predict(model_rpart, mytesting, type = "class")
+#confusionMatrix(predictionsA1, mytesting$classe)
+```
+
+
+##PREDICTING RESULTS WITH THE TEST DATA
+
+The prediction is going to be made with the second model:
+
+```{r}
+prediction <- predict(model_class, test, type = "class")
+prediction
+```
